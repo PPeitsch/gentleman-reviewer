@@ -498,25 +498,27 @@ build_prompt() {
   local rules="$1"
   local files="$2"
 
-  local prompt="You are a code reviewer. Analyze the files below and validate they comply with the coding standards provided.
+  # Start building the prompt
+  cat << EOF
+You are a code reviewer. Analyze the files below and validate they comply with the coding standards provided.
 
 === CODING STANDARDS ===
 $rules
 === END CODING STANDARDS ===
 
-=== FILES TO REVIEW ==="
+=== FILES TO REVIEW ===
+EOF
 
-  # Add file contents
-  echo "$files" | while IFS= read -r file; do
-    if [[ -f "$file" ]]; then
-      prompt="$prompt
-
---- FILE: $file ---
-$(cat "$file")"
+  # Add file contents - using process substitution to avoid subshell
+  while IFS= read -r file; do
+    if [[ -n "$file" && -f "$file" ]]; then
+      echo ""
+      echo "--- FILE: $file ---"
+      cat "$file"
     fi
-  done
+  done <<< "$files"
 
-  prompt="$prompt
+  cat << 'EOF'
 
 === END FILES ===
 
@@ -532,9 +534,8 @@ STATUS: FAILED
 
 **If PASSED:** Confirm all files comply with the coding standards.
 
-**Start your response now with STATUS:**"
-
-  echo "$prompt"
+**Start your response now with STATUS:**
+EOF
 }
 
 # ============================================================================
