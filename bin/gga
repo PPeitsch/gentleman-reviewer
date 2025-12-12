@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # ============================================================================
-# AI Code Review - Provider-agnostic code review using AI
+# Gentleman Guardian Angel - Provider-agnostic code review using AI
 # ============================================================================
 # A standalone CLI tool that validates staged files against your project's
 # coding standards using any AI provider (Claude, Gemini, Codex, Ollama, etc.)
@@ -9,7 +9,7 @@
 
 set -e
 
-VERSION="1.0.1"
+VERSION="2.0.0"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LIB_DIR="$(dirname "$SCRIPT_DIR")/lib"
 
@@ -37,7 +37,7 @@ DEFAULT_STRICT_MODE="true"
 print_banner() {
   echo ""
   echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-  echo -e "${CYAN}${BOLD}  AI Code Review v${VERSION}${NC}"
+  echo -e "${CYAN}${BOLD}  Gentleman Guardian Angel v${VERSION}${NC}"
   echo -e "${CYAN}  Provider-agnostic code review using AI${NC}"
   echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
   echo ""
@@ -46,20 +46,20 @@ print_banner() {
 print_help() {
   print_banner
   echo -e "${BOLD}USAGE:${NC}"
-  echo "  ai-code-review <command> [options]"
+  echo "  gga <command> [options]"
   echo ""
   echo -e "${BOLD}COMMANDS:${NC}"
   echo "  run           Run code review on staged files"
   echo "  install       Install git pre-commit hook in current repo"
   echo "  uninstall     Remove git pre-commit hook from current repo"
   echo "  config        Show current configuration"
-  echo "  init          Create a sample .ai-code-review config file"
+  echo "  init          Create a sample .gga config file"
   echo "  help          Show this help message"
   echo "  version       Show version"
   echo ""
   echo -e "${BOLD}CONFIGURATION:${NC}"
-  echo "  Create a ${CYAN}.ai-code-review${NC} file in your project root or"
-  echo "  ${CYAN}~/.config/ai-code-review/config${NC} for global settings."
+  echo "  Create a ${CYAN}.gga${NC} file in your project root or"
+  echo "  ${CYAN}~/.config/gga/config${NC} for global settings."
   echo ""
   echo -e "${BOLD}CONFIG OPTIONS:${NC}"
   echo "  PROVIDER           AI provider to use (required)"
@@ -72,17 +72,17 @@ print_help() {
   echo "  STRICT_MODE        Fail on ambiguous AI response (default: true)"
   echo ""
   echo -e "${BOLD}EXAMPLES:${NC}"
-  echo "  ai-code-review init          # Create sample config"
-  echo "  ai-code-review install       # Install git hook"
-  echo "  ai-code-review run           # Run review manually"
+  echo "  gga init          # Create sample config"
+  echo "  gga install       # Install git hook"
+  echo "  gga run           # Run review manually"
   echo ""
   echo -e "${BOLD}ENVIRONMENT VARIABLES:${NC}"
-  echo "  AI_CODE_REVIEW_PROVIDER      Override provider from config"
+  echo "  GGA_PROVIDER      Override provider from config"
   echo ""
 }
 
 print_version() {
-  echo "ai-code-review v${VERSION}"
+  echo "gga v${VERSION}"
 }
 
 log_info() {
@@ -114,20 +114,20 @@ load_config() {
   STRICT_MODE="$DEFAULT_STRICT_MODE"
 
   # Load global config first
-  GLOBAL_CONFIG="$HOME/.config/ai-code-review/config"
+  GLOBAL_CONFIG="$HOME/.config/gga/config"
   if [[ -f "$GLOBAL_CONFIG" ]]; then
     source "$GLOBAL_CONFIG"
   fi
 
   # Load project config (overrides global)
-  PROJECT_CONFIG=".ai-code-review"
+  PROJECT_CONFIG=".gga"
   if [[ -f "$PROJECT_CONFIG" ]]; then
     source "$PROJECT_CONFIG"
   fi
 
   # Environment variable overrides everything
-  if [[ -n "$AI_CODE_REVIEW_PROVIDER" ]]; then
-    PROVIDER="$AI_CODE_REVIEW_PROVIDER"
+  if [[ -n "$GGA_PROVIDER" ]]; then
+    PROVIDER="$GGA_PROVIDER"
   fi
 }
 
@@ -143,8 +143,8 @@ cmd_config() {
   echo ""
   
   # Check config sources
-  GLOBAL_CONFIG="$HOME/.config/ai-code-review/config"
-  PROJECT_CONFIG=".ai-code-review"
+  GLOBAL_CONFIG="$HOME/.config/gga/config"
+  PROJECT_CONFIG=".gga"
   
   echo -e "${BOLD}Config Files:${NC}"
   if [[ -f "$GLOBAL_CONFIG" ]]; then
@@ -188,7 +188,7 @@ cmd_config() {
 cmd_init() {
   print_banner
   
-  PROJECT_CONFIG=".ai-code-review"
+  PROJECT_CONFIG=".gga"
   
   if [[ -f "$PROJECT_CONFIG" ]]; then
     log_warning "Config file already exists: $PROJECT_CONFIG"
@@ -200,8 +200,8 @@ cmd_init() {
   fi
 
   cat > "$PROJECT_CONFIG" << 'EOF'
-# AI Code Review Configuration
-# https://github.com/your-org/ai-code-review
+# Gentleman Guardian Angel Configuration
+# https://github.com/your-org/gga
 
 # AI Provider (required)
 # Options: claude, gemini, codex, ollama:<model>
@@ -242,7 +242,7 @@ EOF
   log_info "Next steps:"
   echo "  1. Edit $PROJECT_CONFIG to set your preferred provider"
   echo "  2. Create $DEFAULT_RULES_FILE with your coding standards"
-  echo "  3. Run: ai-code-review install"
+  echo "  3. Run: gga install"
   echo ""
 }
 
@@ -260,21 +260,21 @@ cmd_install() {
 
   # Check if hook already exists
   if [[ -f "$HOOK_PATH" ]]; then
-    if grep -q "ai-code-review" "$HOOK_PATH"; then
-      log_warning "AI Code Review hook already installed"
+    if grep -q "gga" "$HOOK_PATH"; then
+      log_warning "Gentleman Guardian Angel hook already installed"
       exit 0
     else
       log_warning "A pre-commit hook already exists"
-      read -p "Append AI Code Review to existing hook? (y/N): " confirm
+      read -p "Append Gentleman Guardian Angel to existing hook? (y/N): " confirm
       if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
         echo "Aborted."
         exit 0
       fi
       # Append to existing hook
       echo "" >> "$HOOK_PATH"
-      echo "# AI Code Review" >> "$HOOK_PATH"
-      echo 'ai-code-review run || exit 1' >> "$HOOK_PATH"
-      log_success "Appended AI Code Review to existing hook"
+      echo "# Gentleman Guardian Angel" >> "$HOOK_PATH"
+      echo 'gga run || exit 1' >> "$HOOK_PATH"
+      log_success "Appended Gentleman Guardian Angel to existing hook"
       exit 0
     fi
   fi
@@ -282,9 +282,9 @@ cmd_install() {
   # Create new hook
   cat > "$HOOK_PATH" << 'EOF'
 #!/usr/bin/env bash
-# Git pre-commit hook - AI Code Review
+# Git pre-commit hook - Gentleman Guardian Angel
 
-ai-code-review run || exit 1
+gga run || exit 1
 EOF
 
   chmod +x "$HOOK_PATH"
@@ -309,22 +309,22 @@ cmd_uninstall() {
     exit 0
   fi
 
-  if ! grep -q "ai-code-review" "$HOOK_PATH"; then
-    log_warning "AI Code Review hook not found in pre-commit"
+  if ! grep -q "gga" "$HOOK_PATH"; then
+    log_warning "Gentleman Guardian Angel hook not found in pre-commit"
     exit 0
   fi
 
   # Check if it's our hook only or mixed
-  if grep -q "^ai-code-review run" "$HOOK_PATH" && [[ $(wc -l < "$HOOK_PATH") -le 5 ]]; then
+  if grep -q "^gga run" "$HOOK_PATH" && [[ $(wc -l < "$HOOK_PATH") -le 5 ]]; then
     # It's only our hook, remove the file
     rm "$HOOK_PATH"
     log_success "Removed pre-commit hook"
   else
     # Mixed hook, just remove our lines
-    sed -i.bak '/# AI Code Review/d' "$HOOK_PATH"
-    sed -i.bak '/ai-code-review run/d' "$HOOK_PATH"
+    sed -i.bak '/# Gentleman Guardian Angel/d' "$HOOK_PATH"
+    sed -i.bak '/gga run/d' "$HOOK_PATH"
     rm -f "$HOOK_PATH.bak"
-    log_success "Removed AI Code Review from pre-commit hook"
+    log_success "Removed Gentleman Guardian Angel from pre-commit hook"
   fi
   echo ""
 }
@@ -337,8 +337,8 @@ cmd_run() {
   if [[ -z "$PROVIDER" ]]; then
     log_error "No provider configured"
     echo ""
-    echo "Configure a provider in .ai-code-review or set AI_CODE_REVIEW_PROVIDER"
-    echo "Run 'ai-code-review init' to create a config file"
+    echo "Configure a provider in .gga or set GGA_PROVIDER"
+    echo "Run 'gga init' to create a config file"
     echo ""
     exit 1
   fi

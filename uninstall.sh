@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
 # ============================================================================
-# AI Code Review - Uninstaller
+# Gentleman Guardian Angel - Uninstaller
 # ============================================================================
-# Removes the ai-code-review CLI tool from your system
+# Removes the gga CLI tool from your system
 # ============================================================================
 
 set -e
@@ -18,14 +18,14 @@ NC='\033[0m'
 
 echo ""
 echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${CYAN}${BOLD}  AI Code Review - Uninstaller${NC}"
+echo -e "${CYAN}${BOLD}  Gentleman Guardian Angel - Uninstaller${NC}"
 echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 
 # Find and remove binary
 LOCATIONS=(
-  "/usr/local/bin/ai-code-review"
-  "$HOME/.local/bin/ai-code-review"
+  "/usr/local/bin/gga"
+  "$HOME/.local/bin/gga"
 )
 
 FOUND=false
@@ -38,7 +38,7 @@ for loc in "${LOCATIONS[@]}"; do
 done
 
 # Remove lib directory
-LIB_DIR="$HOME/.local/share/ai-code-review"
+LIB_DIR="$HOME/.local/share/gga"
 if [[ -d "$LIB_DIR" ]]; then
   rm -rf "$LIB_DIR"
   echo -e "${GREEN}✅ Removed: $LIB_DIR${NC}"
@@ -46,7 +46,7 @@ if [[ -d "$LIB_DIR" ]]; then
 fi
 
 # Remove global config (optional)
-GLOBAL_CONFIG="$HOME/.config/ai-code-review"
+GLOBAL_CONFIG="$HOME/.config/gga"
 if [[ -d "$GLOBAL_CONFIG" ]]; then
   echo ""
   read -p "Remove global config ($GLOBAL_CONFIG)? (y/N): " confirm
@@ -59,10 +59,10 @@ if [[ -d "$GLOBAL_CONFIG" ]]; then
 fi
 
 if [[ "$FOUND" == false ]]; then
-  echo -e "${YELLOW}⚠️  ai-code-review was not found on this system${NC}"
+  echo -e "${YELLOW}⚠️  gga was not found on this system${NC}"
 fi
 
 echo ""
-echo -e "${BOLD}Note:${NC} Project-specific configs (.ai-code-review) and git hooks"
+echo -e "${BOLD}Note:${NC} Project-specific configs (.gga) and git hooks"
 echo "      were not removed. Remove them manually if needed."
 echo ""

@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
 # ============================================================================
-# AI Code Review - Installer
+# Gentleman Guardian Angel - Installer
 # ============================================================================
-# Installs the ai-code-review CLI tool to your system
+# Installs the gga CLI tool to your system
 # ============================================================================
 
 set -e
@@ -19,7 +19,7 @@ NC='\033[0m'
 
 echo ""
 echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${CYAN}${BOLD}  AI Code Review - Installer${NC}"
+echo -e "${CYAN}${BOLD}  Gentleman Guardian Angel - Installer${NC}"
 echo -e "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 
@@ -39,8 +39,8 @@ echo -e "${BLUE}ℹ️  Install directory: $INSTALL_DIR${NC}"
 echo ""
 
 # Check if already installed
-if [[ -f "$INSTALL_DIR/ai-code-review" ]]; then
-  echo -e "${YELLOW}⚠️  ai-code-review is already installed${NC}"
+if [[ -f "$INSTALL_DIR/gga" ]]; then
+  echo -e "${YELLOW}⚠️  gga is already installed${NC}"
   read -p "Reinstall? (y/N): " confirm
   if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
     echo "Aborted."
@@ -49,25 +49,25 @@ if [[ -f "$INSTALL_DIR/ai-code-review" ]]; then
 fi
 
 # Create lib directory
-LIB_INSTALL_DIR="$HOME/.local/share/ai-code-review/lib"
+LIB_INSTALL_DIR="$HOME/.local/share/gga/lib"
 mkdir -p "$LIB_INSTALL_DIR"
 
 # Copy files
-cp "$SCRIPT_DIR/bin/ai-code-review" "$INSTALL_DIR/ai-code-review"
+cp "$SCRIPT_DIR/bin/gga" "$INSTALL_DIR/gga"
 cp "$SCRIPT_DIR/lib/providers.sh" "$LIB_INSTALL_DIR/providers.sh"
 
 # Update LIB_DIR path in installed script
 if [[ "$(uname)" == "Darwin" ]]; then
-  sed -i '' "s|LIB_DIR=.*|LIB_DIR=\"$LIB_INSTALL_DIR\"|" "$INSTALL_DIR/ai-code-review"
+  sed -i '' "s|LIB_DIR=.*|LIB_DIR=\"$LIB_INSTALL_DIR\"|" "$INSTALL_DIR/gga"
 else
-  sed -i "s|LIB_DIR=.*|LIB_DIR=\"$LIB_INSTALL_DIR\"|" "$INSTALL_DIR/ai-code-review"
+  sed -i "s|LIB_DIR=.*|LIB_DIR=\"$LIB_INSTALL_DIR\"|" "$INSTALL_DIR/gga"
 fi
 
 # Make executable
-chmod +x "$INSTALL_DIR/ai-code-review"
+chmod +x "$INSTALL_DIR/gga"
 chmod +x "$LIB_INSTALL_DIR/providers.sh"
 
-echo -e "${GREEN}✅ Installed ai-code-review to $INSTALL_DIR${NC}"
+echo -e "${GREEN}✅ Installed gga to $INSTALL_DIR${NC}"
 echo ""
 
 # Check if install dir is in PATH
@@ -86,12 +86,12 @@ echo "  1. Navigate to your project:"
 echo "     cd /path/to/your/project"
 echo ""
 echo "  2. Initialize config:"
-echo "     ai-code-review init"
+echo "     gga init"
 echo ""
 echo "  3. Create your AGENTS.md with coding standards"
 echo ""
 echo "  4. Install the git hook:"
-echo "     ai-code-review install"
+echo "     gga install"
 echo ""
 echo "  5. You're ready! The hook will run on each commit."
 echo ""

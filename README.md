@@ -1,12 +1,12 @@
 <p align="center">
-  <img src="https://img.shields.io/badge/version-1.0.0-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-2.0.0-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License">
   <img src="https://img.shields.io/badge/bash-5.0%2B-orange.svg" alt="Bash">
   <img src="https://img.shields.io/badge/homebrew-tap-FBB040.svg" alt="Homebrew">
   <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="PRs Welcome">
 </p>
 
-<h1 align="center">🤖 AI Code Review</h1>
+<h1 align="center">🤖 Gentleman Guardian Angel</h1>
 
 <p align="center">
   <strong>Provider-agnostic code review using AI</strong><br>
@@ -29,7 +29,7 @@
 
 You have coding standards. Your team ignores them. Code reviews catch issues too late.
 
-**AI Code Review** runs on every commit, validating your staged files against your project's `AGENTS.md` (or any rules file). It's like having a senior developer review every line before it hits the repo.
+**Gentleman Guardian Angel** runs on every commit, validating your staged files against your project's `AGENTS.md` (or any rules file). It's like having a senior developer review every line before it hits the repo.
 
 ```
 ┌─────────────────┐     ┌──────────────┐     ┌─────────────────┐
@@ -54,28 +54,28 @@ You have coding standards. Your team ignores them. Code reviews catch issues too
 
 ```bash
 brew tap gentleman-programming/tap
-brew install ai-code-review
+brew install gga
 ```
 
 Or in a single command:
 
 ```bash
-brew install gentleman-programming/tap/ai-code-review
+brew install gentleman-programming/tap/gga
 ```
 
 ### Manual Installation
 
 ```bash
-git clone https://github.com/Gentleman-Programming/ai-code-review.git
-cd ai-code-review
+git clone https://github.com/Gentleman-Programming/gentleman-guardian-angel.git
+cd gga
 ./install.sh
 ```
 
 ### Verify Installation
 
 ```bash
-ai-code-review version
-# Output: ai-code-review v1.0.0
+gga version
+# Output: gga v1.0.0
 ```
 
 ---
@@ -87,13 +87,13 @@ ai-code-review version
 cd ~/your-project
 
 # 2. Initialize config
-ai-code-review init
+gga init
 
 # 3. Create your rules file
 touch AGENTS.md  # Add your coding standards
 
 # 4. Install the git hook
-ai-code-review install
+gga install
 
 # 5. Done! Now every commit gets reviewed 🎉
 ```
@@ -109,25 +109,25 @@ Let's walk through a complete example from setup to commit:
 ```bash
 $ cd ~/projects/my-react-app
 
-$ ai-code-review init
+$ gga init
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  AI Code Review v1.0.0
+  Gentleman Guardian Angel v1.0.0
   Provider-agnostic code review using AI
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-✅ Created config file: .ai-code-review
+✅ Created config file: .gga
 
 ℹ️  Next steps:
-  1. Edit .ai-code-review to set your preferred provider
+  1. Edit .gga to set your preferred provider
   2. Create AGENTS.md with your coding standards
-  3. Run: ai-code-review install
+  3. Run: gga install
 ```
 
 ### Step 2: Configure your provider
 
 ```bash
-$ cat .ai-code-review
+$ cat .gga
 
 # AI Provider (required)
 PROVIDER="claude"
@@ -171,10 +171,10 @@ EOF
 ### Step 4: Install the git hook
 
 ```bash
-$ ai-code-review install
+$ gga install
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  AI Code Review v1.0.0
+  Gentleman Guardian Angel v1.0.0
   Provider-agnostic code review using AI
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -188,7 +188,7 @@ $ git add src/components/Button.tsx
 $ git commit -m "feat: add new button component"
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  AI Code Review v1.0.0
+  Gentleman Guardian Angel v1.0.0
   Provider-agnostic code review using AI
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -229,7 +229,7 @@ $ git add src/components/Button.tsx
 $ git commit -m "feat: add new button component"
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  AI Code Review v1.0.0
+  Gentleman Guardian Angel v1.0.0
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ℹ️  Provider: claude
@@ -255,67 +255,67 @@ All files comply with the coding standards defined in AGENTS.md.
 
 | Command | Description | Example |
 |---------|-------------|---------|
-| `init` | Create sample `.ai-code-review` config file | `ai-code-review init` |
-| `install` | Install git pre-commit hook in current repo | `ai-code-review install` |
-| `uninstall` | Remove git pre-commit hook from current repo | `ai-code-review uninstall` |
-| `run` | Run code review manually on staged files | `ai-code-review run` |
-| `config` | Display current configuration and status | `ai-code-review config` |
-| `help` | Show help message with all commands | `ai-code-review help` |
-| `version` | Show installed version | `ai-code-review version` |
+| `init` | Create sample `.gga` config file | `gga init` |
+| `install` | Install git pre-commit hook in current repo | `gga install` |
+| `uninstall` | Remove git pre-commit hook from current repo | `gga uninstall` |
+| `run` | Run code review manually on staged files | `gga run` |
+| `config` | Display current configuration and status | `gga config` |
+| `help` | Show help message with all commands | `gga help` |
+| `version` | Show installed version | `gga version` |
 
 ### Command Details
 
-#### `ai-code-review init`
+#### `gga init`
 
-Creates a sample `.ai-code-review` configuration file in your project root with sensible defaults.
+Creates a sample `.gga` configuration file in your project root with sensible defaults.
 
 ```bash
-$ ai-code-review init
-✅ Created config file: .ai-code-review
+$ gga init
+✅ Created config file: .gga
 ```
 
-#### `ai-code-review install`
+#### `gga install`
 
 Installs a git pre-commit hook that automatically runs code review on every commit.
 
 ```bash
-$ ai-code-review install
+$ gga install
 ✅ Installed pre-commit hook: .git/hooks/pre-commit
 ```
 
 If a pre-commit hook already exists, it will ask if you want to append to it.
 
-#### `ai-code-review uninstall`
+#### `gga uninstall`
 
 Removes the git pre-commit hook from your repository.
 
 ```bash
-$ ai-code-review uninstall
+$ gga uninstall
 ✅ Removed pre-commit hook
 ```
 
-#### `ai-code-review run`
+#### `gga run`
 
 Manually runs code review on currently staged files. Useful for testing before committing.
 
 ```bash
 $ git add src/components/Button.tsx
-$ ai-code-review run
+$ gga run
 # Reviews the staged file
 ```
 
-#### `ai-code-review config`
+#### `gga config`
 
 Shows the current configuration, including where config files are loaded from and all settings.
 
 ```bash
-$ ai-code-review config
+$ gga config
 
 Current Configuration:
 
 Config Files:
   Global:  Not found
-  Project: .ai-code-review
+  Project: .gga
 
 Values:
   PROVIDER:          claude
@@ -369,7 +369,7 @@ PROVIDER="ollama:deepseek-coder"
 
 ## ⚙️ Configuration
 
-### Config File: `.ai-code-review`
+### Config File: `.gga`
 
 Create this file in your project root:
 
@@ -407,16 +407,16 @@ STRICT_MODE="true"
 
 ### Config Hierarchy (Priority Order)
 
-1. **Environment variable** `AI_CODE_REVIEW_PROVIDER` (highest priority)
-2. **Project config** `.ai-code-review` (in project root)
-3. **Global config** `~/.config/ai-code-review/config` (lowest priority)
+1. **Environment variable** `GGA_PROVIDER` (highest priority)
+2. **Project config** `.gga` (in project root)
+3. **Global config** `~/.config/gga/config` (lowest priority)
 
 ```bash
 # Override provider for a single run
-AI_CODE_REVIEW_PROVIDER="gemini" ai-code-review run
+GGA_PROVIDER="gemini" gga run
 
 # Or export for the session
-export AI_CODE_REVIEW_PROVIDER="ollama:llama3.2"
+export GGA_PROVIDER="ollama:llama3.2"
 ```
 
 ---
@@ -461,7 +461,7 @@ The AI needs to know your standards. Create an `AGENTS.md` file:
 ### TypeScript/React Project
 
 ```bash
-# .ai-code-review
+# .gga
 PROVIDER="claude"
 FILE_PATTERNS="*.ts,*.tsx"
 EXCLUDE_PATTERNS="*.test.ts,*.test.tsx,*.spec.ts,*.d.ts,*.stories.tsx"
@@ -471,7 +471,7 @@ RULES_FILE="AGENTS.md"
 ### Python Project
 
 ```bash
-# .ai-code-review
+# .gga
 PROVIDER="ollama:codellama"
 FILE_PATTERNS="*.py"
 EXCLUDE_PATTERNS="*_test.py,test_*.py,conftest.py,__pycache__/*"
@@ -481,7 +481,7 @@ RULES_FILE=".coding-standards.md"
 ### Go Project
 
 ```bash
-# .ai-code-review
+# .gga
 PROVIDER="gemini"
 FILE_PATTERNS="*.go"
 EXCLUDE_PATTERNS="*_test.go,mock_*.go,*_mock.go"
@@ -490,7 +490,7 @@ EXCLUDE_PATTERNS="*_test.go,mock_*.go,*_mock.go"
 ### Full-Stack Monorepo
 
 ```bash
-# .ai-code-review
+# .gga
 PROVIDER="claude"
 FILE_PATTERNS="*.ts,*.tsx,*.py,*.go"
 EXCLUDE_PATTERNS="*.test.*,*_test.*,*.mock.*,*.d.ts,dist/*,build/*"
@@ -505,10 +505,10 @@ git commit -m "feat: add feature"
     │
     ▼
 ┌───────────────────────────────────────┐
-│  Pre-commit Hook (ai-code-review run) │
+│  Pre-commit Hook (gga run) │
 └───────────────────────────────────────┘
     │
-    ├──▶ 1. Load config from .ai-code-review
+    ├──▶ 1. Load config from .gga
     │
     ├──▶ 2. Validate provider is installed
     │
@@ -549,16 +549,16 @@ git commit -n -m "hotfix: urgent fix"
 
 ## 🔗 Integrations
 
-AI Code Review works standalone with native git hooks, but you can also integrate it with popular hook managers.
+Gentleman Guardian Angel works standalone with native git hooks, but you can also integrate it with popular hook managers.
 
 ### Native Git Hook (Default)
 
-This is what `ai-code-review install` does automatically:
+This is what `gga install` does automatically:
 
 ```bash
 # .git/hooks/pre-commit
 #!/usr/bin/env bash
-ai-code-review run || exit 1
+gga run || exit 1
 ```
 
 ### Husky (Node.js projects)
@@ -580,8 +580,8 @@ Edit `.husky/pre-commit`:
 ```bash
 #!/usr/bin/env bash
 
-# Run AI Code Review
-ai-code-review run || exit 1
+# Run Gentleman Guardian Angel
+gga run || exit 1
 
 # Your other checks (optional)
 npm run lint
@@ -615,7 +615,7 @@ npm install -D husky lint-staged
 #!/usr/bin/env bash
 
 # AI Review first (uses git staged files internally)
-ai-code-review run || exit 1
+gga run || exit 1
 
 # Then lint-staged for formatting
 npx lint-staged
@@ -639,12 +639,12 @@ Create `.pre-commit-config.yaml`:
 
 ```yaml
 repos:
-  # AI Code Review (runs first)
+  # Gentleman Guardian Angel (runs first)
   - repo: local
     hooks:
-      - id: ai-code-review
-        name: AI Code Review
-        entry: ai-code-review run
+      - id: gga
+        name: Gentleman Guardian Angel
+        entry: gga run
         language: system
         pass_filenames: false
         stages: [pre-commit]
@@ -679,7 +679,7 @@ pre-commit install
 pre-commit run --all-files
 
 # Run only AI review
-pre-commit run ai-code-review
+pre-commit run gga
 ```
 
 ### Lefthook (Fast, language-agnostic)
@@ -703,8 +703,8 @@ pre-commit:
   parallel: false
   commands:
     ai-review:
-      run: ai-code-review run
-      fail_text: "AI Code Review failed. Fix violations before committing."
+      run: gga run
+      fail_text: "Gentleman Guardian Angel failed. Fix violations before committing."
 
     lint:
       glob: "*.{ts,tsx,js,jsx}"
@@ -722,13 +722,13 @@ lefthook install
 
 ### CI/CD Integration
 
-You can also run AI Code Review in your CI pipeline:
+You can also run Gentleman Guardian Angel in your CI pipeline:
 
 #### GitHub Actions
 
 ```yaml
 # .github/workflows/ai-review.yml
-name: AI Code Review
+name: Gentleman Guardian Angel
 
 on:
   pull_request:
@@ -742,11 +742,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install AI Code Review
+      - name: Install Gentleman Guardian Angel
         run: |
-          git clone https://github.com/Gentleman-Programming/ai-code-review.git /tmp/ai-code-review
-          chmod +x /tmp/ai-code-review/bin/ai-code-review
-          echo "/tmp/ai-code-review/bin" >> $GITHUB_PATH
+          git clone https://github.com/Gentleman-Programming/gentleman-guardian-angel.git /tmp/gga
+          chmod +x /tmp/gga/bin/gga
+          echo "/tmp/gga/bin" >> $GITHUB_PATH
 
       - name: Install Claude CLI
         run: |
@@ -764,24 +764,24 @@ jobs:
           cat /tmp/changed_files.txt | xargs git add
           
           # Run review
-          ai-code-review run
+          gga run
 ```
 
 #### GitLab CI
 
 ```yaml
 # .gitlab-ci.yml
-ai-code-review:
+gga:
   stage: test
   image: ubuntu:latest
   before_script:
     - apt-get update && apt-get install -y git curl
-    - git clone https://github.com/Gentleman-Programming/ai-code-review.git /opt/ai-code-review
-    - export PATH="/opt/ai-code-review/bin:$PATH"
+    - git clone https://github.com/Gentleman-Programming/gentleman-guardian-angel.git /opt/gga
+    - export PATH="/opt/gga/bin:$PATH"
     # Install your provider CLI here
   script:
     - git diff --name-only $CI_MERGE_REQUEST_DIFF_BASE_SHA | xargs git add
-    - ai-code-review run
+    - gga run
   only:
     - merge_requests
 ```
@@ -840,14 +840,14 @@ EXCLUDE_PATTERNS="*.min.js,*.bundle.js,dist/*,build/*,*.generated.ts"
 Contributions are welcome! Some ideas:
 
 - [ ] Add more providers (Copilot, Codeium, etc.)
-- [ ] Support for `.ai-code-review.yaml` format  
+- [ ] Support for `.gga.yaml` format  
 - [ ] Caching to avoid re-reviewing unchanged files
 - [ ] GitHub Action version
 - [ ] Output formats (JSON, SARIF for IDE integration)
 
 ```bash
 # Fork, clone, and submit PRs!
-git clone https://github.com/Gentleman-Programming/ai-code-review.git
+git clone https://github.com/Gentleman-Programming/gentleman-guardian-angel.git
 ```
 
 ---
