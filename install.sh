@@ -27,25 +27,32 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Determine install location
 if [[ -w "/usr/local/bin" ]]; then
-  INSTALL_DIR="/usr/local/bin"
-elif [[ -d "$HOME/.local/bin" ]]; then
-  INSTALL_DIR="$HOME/.local/bin"
+    INSTALL_DIR="/usr/local/bin"
+elif [[ -d "$HOME/.local/bin" && -w "$HOME/.local/bin" ]]; then
+    INSTALL_DIR="$HOME/.local/bin"
 else
-  INSTALL_DIR="$HOME/.local/bin"
-  mkdir -p "$INSTALL_DIR"
+    INSTALL_DIR="$HOME/.local/bin"
+    mkdir -p "$INSTALL_DIR"
 fi
 
 echo -e "${BLUE}ℹ️  Install directory: $INSTALL_DIR${NC}"
 echo ""
 
+if [[ ! -w "$INSTALL_DIR" ]]; then
+    echo -e "${RED}❌ No write permission to $INSTALL_DIR${NC}"
+    echo -e "${YELLOW}Fix ownership or permissions, e.g.:${NC}"
+    echo "  sudo chown -R $USER:$USER $INSTALL_DIR"
+    exit 1
+fi
+
 # Check if already installed
 if [[ -f "$INSTALL_DIR/gga" ]]; then
-  echo -e "${YELLOW}⚠️  gga is already installed${NC}"
-  read -p "Reinstall? (y/N): " confirm
-  if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
-    echo "Aborted."
-    exit 0
-  fi
+    echo -e "${YELLOW}⚠️  gga is already installed${NC}"
+    read -p "Reinstall? (y/N): " confirm
+    if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
+        echo "Aborted."
+        exit 0
+    fi
 fi
 
 # Create lib directory
