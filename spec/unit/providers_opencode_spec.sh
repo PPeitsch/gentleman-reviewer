@@ -17,16 +17,19 @@ Describe 'providers.sh opencode support'
   End
 
   Describe 'execute_opencode()'
-    # Mock opencode command
+    # Mock opencode command - accepts prompt as positional argument
     opencode() {
       if [[ "$1" == "run" ]]; then
-        if [[ "${2:-}" == "--model" ]]; then
-           echo "Run with model: $3"
+        shift # remove "run"
+        if [[ "${1:-}" == "--model" ]]; then
+           local model="$2"
+           shift 2 # remove "--model" and model name
+           echo "Run with model: $model"
+           echo "$*" # echo the prompt (remaining args)
         else
            echo "Run default"
+           echo "$*" # echo the prompt (remaining args)
         fi
-        # Read stdin
-        cat -
       fi
     }
 

@@ -177,13 +177,14 @@ execute_opencode() {
   local model="$1"
   local prompt="$2"
   
-  # OpenCode CLI accepts prompt via stdin pipe or argument
+  # OpenCode CLI accepts prompt as positional argument
+  # opencode run [message..] - message is a positional array
   if [[ -n "$model" ]]; then
-    printf '%s' "$prompt" | opencode run --model "$model" 2>&1
+    opencode run --model "$model" "$prompt" 2>&1
   else
-    printf '%s' "$prompt" | opencode run 2>&1
+    opencode run "$prompt" 2>&1
   fi
-  return "${PIPESTATUS[1]}"
+  return $?
 }
 
 execute_ollama() {
