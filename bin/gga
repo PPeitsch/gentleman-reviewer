@@ -893,7 +893,7 @@ get_staged_files() {
 
 get_binary_staged_files() {
   # Returns list of binary files in the staging area
-  # Binary files show as "-	-	filename" in git diff --numstat
+  # Binary files show as "-<TAB>-<TAB>filename" in git diff --numstat
   git diff --cached --numstat --diff-filter=ACM 2>/dev/null | while IFS=$'\t' read -r added deleted file; do
     if [[ "$added" == "-" && "$deleted" == "-" ]]; then
       echo "$file"
