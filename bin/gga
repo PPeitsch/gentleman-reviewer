@@ -9,7 +9,7 @@
 
 set -e
 
-VERSION="2.6.1"
+VERSION="2.7.0"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LIB_DIR="$(dirname "$SCRIPT_DIR")/lib"
 
@@ -103,6 +103,46 @@ stop_spinner() {
   if [[ -t 2 ]]; then
     printf "\r\033[K" >&2
   fi
+}
+
+# ============================================================================
+# Output Formatting
+# ============================================================================
+
+format_review_output() {
+  local result="$1"
+
+  # If stdout is not a terminal, output plain text without formatting
+  if [[ ! -t 1 ]]; then
+    echo "$result"
+    return
+  fi
+
+  # Print separator before output
+  echo -e "${CYAN}─────────${NC} ${BOLD}Review Result${NC} ${CYAN}─────────${NC}"
+  echo ""
+
+  # Process each line and apply formatting
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    # Colorize STATUS: PASSED (handle markdown bold syntax too)
+    if [[ "$line" =~ ^\*?\*?STATUS:[[:space:]]*PASSED\*?\*?$ ]] || [[ "$line" =~ ^STATUS:[[:space:]]*PASSED ]]; then
+      echo -e "${GREEN}${BOLD}${line}${NC}"
+    # Colorize STATUS: FAILED (handle markdown bold syntax too)
+    elif [[ "$line" =~ ^\*?\*?STATUS:[[:space:]]*FAILED\*?\*?$ ]] || [[ "$line" =~ ^STATUS:[[:space:]]*FAILED ]]; then
+      echo -e "${RED}${BOLD}${line}${NC}"
+    # Colorize numbered findings (#N file:line - ...)
+    elif [[ "$line" =~ ^#([0-9]+)[[:space:]]([^[:space:]]+)(.*) ]]; then
+      local num="${BASH_REMATCH[1]}"
+      local file="${BASH_REMATCH[2]}"
+      local rest="${BASH_REMATCH[3]}"
+      echo -e "${YELLOW}#${num}${NC} ${CYAN}${file}${NC}${rest}"
+    else
+      echo "$line"
+    fi
+  done <<< "$result"
+
+  echo ""
+  echo -e "${CYAN}──────────────────────────────────${NC}"
 }
 
 # Defaults
@@ -839,8 +879,7 @@ cmd_run() {
     exit 0
   fi
 
-  echo "$RESULT"
-  echo ""
+  format_review_output "$RESULT"
 
   # Parse result
   # Search for STATUS in the first 15 lines to handle AI responses that include
