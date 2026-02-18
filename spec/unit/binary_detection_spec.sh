@@ -18,13 +18,13 @@ Describe 'Binary file detection'
   AfterEach 'cleanup'
 
   Describe 'get_binary_staged_files()'
-    # Source the real bin/gga
+    # Mirror the implementation from bin/gga
     get_binary_staged_files() {
-      git diff --cached --numstat --diff-filter=ACM 2>/dev/null | while IFS=$'\t' read -r added deleted file; do
+      while IFS=$'\t' read -r added deleted file; do
         if [[ "$added" == "-" && "$deleted" == "-" ]]; then
           echo "$file"
         fi
-      done
+      done < <(git diff --cached --numstat --diff-filter=ACM 2>/dev/null)
     }
 
     It 'returns empty for text files only'
