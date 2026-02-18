@@ -9,7 +9,7 @@
 
 set -e
 
-VERSION="2.7.0"
+VERSION="2.8.0"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LIB_DIR="$(dirname "$SCRIPT_DIR")/lib"
 
@@ -396,6 +396,9 @@ DEFAULT_RULES_FILE="REVIEW_RULES.md"
 DEFAULT_LEGACY_RULES_FILE="AGENTS.md"
 DEFAULT_STRICT_MODE="true"
 DEFAULT_MAX_FILE_SIZE="100000"  # 100KB in bytes, 0 = no limit
+DEFAULT_RETRY_COUNT="3"         # Number of retry attempts
+DEFAULT_RETRY_DELAY="2"         # Initial delay in seconds (doubles each retry)
+DEFAULT_FALLBACK_PROVIDER=""    # Fallback provider if primary fails (empty = no fallback)
 
 # ============================================================================
 # Helper Functions
@@ -451,6 +454,9 @@ print_help() {
   echo "  RULES_FILE         File containing review rules (default: REVIEW_RULES.md)"
   echo "  STRICT_MODE        Fail on ambiguous AI response (default: true)"
   echo "  MAX_FILE_SIZE      Max file size in bytes, 0=no limit (default: 100000)"
+  echo "  RETRY_COUNT        Number of retry attempts on failure (default: 3)"
+  echo "  RETRY_DELAY        Initial retry delay in seconds (default: 2)"
+  echo "  FALLBACK_PROVIDER  Fallback provider if primary fails (default: none)"
   echo ""
   echo -e "${BOLD}EXAMPLES:${NC}"
   echo "  gga init               # Create sample config"
@@ -498,6 +504,9 @@ load_config() {
   RULES_FILE="$DEFAULT_RULES_FILE"
   STRICT_MODE="$DEFAULT_STRICT_MODE"
   MAX_FILE_SIZE="$DEFAULT_MAX_FILE_SIZE"
+  RETRY_COUNT="$DEFAULT_RETRY_COUNT"
+  RETRY_DELAY="$DEFAULT_RETRY_DELAY"
+  FALLBACK_PROVIDER="$DEFAULT_FALLBACK_PROVIDER"
 
   # Load global config first
   GLOBAL_CONFIG="$HOME/.config/gga/config"
@@ -562,6 +571,14 @@ cmd_config() {
   fi
   echo -e "  RULES_FILE:        ${CYAN}$RULES_FILE${NC}"
   echo -e "  STRICT_MODE:       ${CYAN}$STRICT_MODE${NC}"
+  echo -e "  MAX_FILE_SIZE:     ${CYAN}$MAX_FILE_SIZE${NC}"
+  echo -e "  RETRY_COUNT:       ${CYAN}$RETRY_COUNT${NC}"
+  echo -e "  RETRY_DELAY:       ${CYAN}${RETRY_DELAY}s${NC}"
+  if [[ -n "$FALLBACK_PROVIDER" ]]; then
+    echo -e "  FALLBACK_PROVIDER: ${CYAN}$FALLBACK_PROVIDER${NC}"
+  else
+    echo -e "  FALLBACK_PROVIDER: ${YELLOW}None${NC}"
+  fi
   echo ""
 
   # Check if rules file exists
@@ -631,6 +648,17 @@ STRICT_MODE="true"
 # Use --force to override
 # Default: 100000 (100KB)
 MAX_FILE_SIZE="100000"
+
+# Retry settings for provider failures
+# RETRY_COUNT: Number of retry attempts (default: 3)
+# RETRY_DELAY: Initial delay in seconds, doubles each retry (default: 2)
+RETRY_COUNT="3"
+RETRY_DELAY="2"
+
+# Fallback provider if primary provider fails after all retries
+# Leave empty to disable fallback
+# Example: FALLBACK_PROVIDER="gemini"
+FALLBACK_PROVIDER=""
 EOF
 
   log_success "Created config file: $PROJECT_CONFIG"
@@ -1157,12 +1185,15 @@ cmd_run() {
   # Build prompt only with files to review
   PROMPT=$(build_prompt "$RULES" "$files_to_review" "$use_staged" "$commit_msg")
 
-  # Execute review
+  # Execute review with retry support
   log_info "Sending to $PROVIDER for review..."
+  if [[ -n "$FALLBACK_PROVIDER" ]]; then
+    log_info "Fallback: $FALLBACK_PROVIDER"
+  fi
   echo ""
 
   start_spinner "Reviewing code..."
-  RESULT=$(execute_provider "$PROVIDER" "$PROMPT")
+  RESULT=$(execute_with_retry "$PROVIDER" "$PROMPT" "$RETRY_COUNT" "$RETRY_DELAY" "$FALLBACK_PROVIDER")
   EXEC_STATUS=$?
   stop_spinner
 

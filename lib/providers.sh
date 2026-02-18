@@ -13,6 +13,8 @@
 
 # Colors (in case sourced independently)
 RED='\033[0;31m'
+YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
 NC='\033[0m'
 
 # ============================================================================
@@ -112,7 +114,89 @@ validate_provider() {
 # Provider Execution
 # ============================================================================
 
-execute_provider() {
+# Execute provider with retry and fallback support
+# Usage: execute_with_retry provider prompt retry_count retry_delay fallback_provider
+execute_with_retry() {
+  local provider="$1"
+  local prompt="$2"
+  local retry_count="${3:-3}"
+  local retry_delay="${4:-2}"
+  local fallback_provider="${5:-}"
+
+  local result
+  local status
+  local attempt=1
+  local current_delay="$retry_delay"
+  local last_error=""
+
+  # Try primary provider with retries
+  while [[ $attempt -le $retry_count ]]; do
+    # Capture both stdout and exit status
+    result=$(execute_provider_internal "$provider" "$prompt" 2>&1)
+    status=$?
+
+    if [[ $status -eq 0 ]]; then
+      # Success - output result and return
+      printf '%s' "$result"
+      return 0
+    fi
+
+    # Save error for later reporting
+    last_error="$result"
+
+    # Log retry attempt (if not last attempt)
+    if [[ $attempt -lt $retry_count ]]; then
+      echo -e "${YELLOW}⚠️  Provider $provider failed (attempt $attempt/$retry_count)${NC}" >&2
+      if [[ -n "$last_error" ]]; then
+        echo -e "${YELLOW}   Error: $(echo "$last_error" | head -n 1)${NC}" >&2
+      fi
+      echo -e "${CYAN}⏳ Retrying in ${current_delay}s...${NC}" >&2
+      sleep "$current_delay"
+      # Exponential backoff: double the delay
+      current_delay=$((current_delay * 2))
+    fi
+
+    attempt=$((attempt + 1))
+  done
+
+  # All retries failed
+  echo -e "${RED}❌ Provider $provider failed after $retry_count attempts${NC}" >&2
+
+  # Try fallback provider if configured
+  if [[ -n "$fallback_provider" ]]; then
+    echo -e "${CYAN}🔄 Attempting fallback provider: $fallback_provider${NC}" >&2
+
+    # Validate fallback provider
+    if ! validate_provider "$fallback_provider" 2>/dev/null; then
+      echo -e "${RED}❌ Fallback provider $fallback_provider is not available${NC}" >&2
+      printf '%s' "$last_error"
+      return 1
+    fi
+
+    # Execute fallback (single attempt, no retry)
+    result=$(execute_provider_internal "$fallback_provider" "$prompt" 2>&1)
+    status=$?
+
+    if [[ $status -eq 0 ]]; then
+      echo -e "${CYAN}✅ Fallback provider $fallback_provider succeeded${NC}" >&2
+      printf '%s' "$result"
+      return 0
+    fi
+
+    echo -e "${RED}❌ Fallback provider $fallback_provider also failed${NC}" >&2
+    echo -e "${RED}   Primary error: $(echo "$last_error" | head -n 1)${NC}" >&2
+    echo -e "${RED}   Fallback error: $(echo "$result" | head -n 1)${NC}" >&2
+    printf '%s' "$result"
+    return 1
+  fi
+
+  # No fallback, return last error
+  printf '%s' "$last_error"
+  return 1
+}
+
+# Internal provider execution (no retry logic)
+execute_provider_internal() {
   local provider="$1"
   local prompt="$2"
   local base_provider="${provider%%:*}"
@@ -139,6 +223,14 @@ execute_provider() {
       execute_ollama "$model" "$prompt"
       ;;
   esac
+}
+
+# Legacy function for backwards compatibility
+execute_provider() {
+  local provider="$1"
+  local prompt="$2"
+
+  execute_provider_internal "$provider" "$prompt"
 }
 
 # ============================================================================
