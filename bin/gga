@@ -252,6 +252,7 @@ prompt_dismiss_findings() {
   local dismiss_input
   printf "Dismiss findings? (#s comma-separated, Enter to skip): " > /dev/tty
   read -r dismiss_input < /dev/tty 2>/dev/null || return 1
+  echo ""
 
   if [[ -z "$dismiss_input" ]]; then
     # User pressed Enter without input — skip dismissal
@@ -302,6 +303,7 @@ prompt_dismiss_findings() {
     # Add to .gga-ignore
     add_to_gga_ignore "$file_ref" "$reason"
     log_success "Added to .gga-ignore: ${file_ref}"
+    echo ""
     dismissed_count=$((dismissed_count + 1))
   done
 
