@@ -1269,6 +1269,7 @@ cmd_run() {
       fi
       if [[ $num_batches -gt 1 ]]; then
         log_success "Batch $batch_num: PASSED"
+        echo ""
       fi
     elif echo "$status_check" | grep -q "STATUS: FAILED"; then
       any_failed=true
@@ -1284,6 +1285,7 @@ cmd_run() {
       fi
       if [[ $num_batches -gt 1 ]]; then
         log_error "Batch $batch_num: FAILED"
+        echo ""
       fi
       # Store full result for later
       if [[ -n "$all_results" ]]; then
@@ -1317,16 +1319,23 @@ cmd_run() {
     if [[ $num_batches -gt 1 && -n "$all_findings" ]]; then
       echo -e "${CYAN}─────────${NC} ${BOLD}Combined Review Results${NC} ${CYAN}─────────${NC}"
       echo ""
-      echo "STATUS: FAILED"
+      echo -e "${RED}${BOLD}STATUS: FAILED${NC}"
       echo ""
-      # Renumber findings for combined output
+      # Renumber findings for combined output with colors
       local finding_num=1
       while IFS= read -r finding; do
         if [[ -n "$finding" ]]; then
-          # Replace #N with new sequential number
+          # Replace #N with new sequential number and apply colors
           local finding_rest
           finding_rest=$(echo "$finding" | sed 's/^#[0-9]* //')
-          echo "#$finding_num $finding_rest"
+          # Extract file reference and rest for coloring
+          if [[ "$finding_rest" =~ ^([^[:space:]]+)(.*) ]]; then
+            local file_ref="${BASH_REMATCH[1]}"
+            local desc="${BASH_REMATCH[2]}"
+            echo -e "${YELLOW}#${finding_num}${NC} ${CYAN}${file_ref}${NC}${desc}"
+          else
+            echo -e "${YELLOW}#${finding_num}${NC} ${finding_rest}"
+          fi
           finding_num=$((finding_num + 1))
         fi
       done <<< "$all_findings"
