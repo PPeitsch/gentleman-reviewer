@@ -248,8 +248,10 @@ prompt_dismiss_findings() {
 
   echo ""
   # Read from /dev/tty for git hook compatibility
+  # Print prompt to /dev/tty explicitly (read -p doesn't work well with stdin redirection)
   local dismiss_input
-  read -r -p "Dismiss findings? (#s comma-separated, Enter to skip): " dismiss_input < /dev/tty 2>/dev/null || return 1
+  printf "Dismiss findings? (#s comma-separated, Enter to skip): " > /dev/tty
+  read -r dismiss_input < /dev/tty 2>/dev/null || return 1
 
   if [[ -z "$dismiss_input" ]]; then
     # User pressed Enter without input — skip dismissal
@@ -290,7 +292,8 @@ prompt_dismiss_findings() {
 
     # Prompt for reason
     local reason
-    read -r -p "Reason for #${num}: " reason < /dev/tty 2>/dev/null || reason="dismissed"
+    printf "Reason for #${num}: " > /dev/tty
+    read -r reason < /dev/tty 2>/dev/null || reason="dismissed"
 
     if [[ -z "$reason" ]]; then
       reason="dismissed"
