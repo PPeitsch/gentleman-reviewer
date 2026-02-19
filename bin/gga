@@ -9,7 +9,7 @@
 
 set -e
 
-VERSION="2.8.0"
+VERSION="2.9.0"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LIB_DIR="$(dirname "$SCRIPT_DIR")/lib"
 
@@ -399,6 +399,7 @@ DEFAULT_MAX_FILE_SIZE="100000"  # 100KB in bytes, 0 = no limit
 DEFAULT_RETRY_COUNT="3"         # Number of retry attempts
 DEFAULT_RETRY_DELAY="2"         # Initial delay in seconds (doubles each retry)
 DEFAULT_FALLBACK_PROVIDER=""    # Fallback provider if primary fails (empty = no fallback)
+DEFAULT_MAX_PROMPT_SIZE="50000" # Max prompt size in characters (0 = no limit, triggers batching)
 
 # ============================================================================
 # Helper Functions
@@ -457,6 +458,8 @@ print_help() {
   echo "  RETRY_COUNT        Number of retry attempts on failure (default: 3)"
   echo "  RETRY_DELAY        Initial retry delay in seconds (default: 2)"
   echo "  FALLBACK_PROVIDER  Fallback provider if primary fails (default: none)"
+  echo "  MAX_PROMPT_SIZE    Max prompt size in chars, 0=no limit (default: 50000)"
+  echo "                     Splits into batches when exceeded"
   echo ""
   echo -e "${BOLD}EXAMPLES:${NC}"
   echo "  gga init               # Create sample config"
@@ -507,6 +510,7 @@ load_config() {
   RETRY_COUNT="$DEFAULT_RETRY_COUNT"
   RETRY_DELAY="$DEFAULT_RETRY_DELAY"
   FALLBACK_PROVIDER="$DEFAULT_FALLBACK_PROVIDER"
+  MAX_PROMPT_SIZE="$DEFAULT_MAX_PROMPT_SIZE"
 
   # Load global config first
   GLOBAL_CONFIG="$HOME/.config/gga/config"
@@ -578,6 +582,11 @@ cmd_config() {
     echo -e "  FALLBACK_PROVIDER: ${CYAN}$FALLBACK_PROVIDER${NC}"
   else
     echo -e "  FALLBACK_PROVIDER: ${YELLOW}None${NC}"
+  fi
+  if [[ -n "$MAX_PROMPT_SIZE" && "$MAX_PROMPT_SIZE" != "0" ]]; then
+    echo -e "  MAX_PROMPT_SIZE:   ${CYAN}$MAX_PROMPT_SIZE${NC} (chars)"
+  else
+    echo -e "  MAX_PROMPT_SIZE:   ${YELLOW}No limit${NC}"
   fi
   echo ""
 
@@ -659,6 +668,11 @@ RETRY_DELAY="2"
 # Leave empty to disable fallback
 # Example: FALLBACK_PROVIDER="gemini"
 FALLBACK_PROVIDER=""
+
+# Maximum prompt size in characters (0 = no limit)
+# When exceeded, files are split into batches and reviewed separately
+# Default: 50000
+MAX_PROMPT_SIZE="50000"
 EOF
 
   log_success "Created config file: $PROJECT_CONFIG"
@@ -1182,8 +1196,15 @@ cmd_run() {
     log_info "Including commit message in review"
   fi
 
-  # Build prompt only with files to review
-  PROMPT=$(build_prompt "$RULES" "$files_to_review" "$use_staged" "$commit_msg")
+  # Check if batching is needed
+  local batch_output
+  batch_output=$(split_files_into_batches "$files_to_review" "$MAX_PROMPT_SIZE" "$use_staged" "$RULES")
+  local num_batches
+  num_batches=$(count_batches "$batch_output")
+
+  if [[ $num_batches -gt 1 ]]; then
+    log_info "Large commit: splitting into $num_batches batches"
+  fi
 
   # Execute review with retry support
   log_info "Sending to $PROVIDER for review..."
@@ -1192,45 +1213,131 @@ cmd_run() {
   fi
   echo ""
 
-  start_spinner "Reviewing code..."
-  RESULT=$(execute_with_retry "$PROVIDER" "$PROMPT" "$RETRY_COUNT" "$RETRY_DELAY" "$FALLBACK_PROVIDER")
-  EXEC_STATUS=$?
-  stop_spinner
+  # Process batches
+  local all_results=""
+  local any_failed=false
+  local any_error=false
+  local all_findings=""
+  local batch_num=1
+  local passed_files=""
+
+  while [[ $batch_num -le $num_batches ]]; do
+    local batch_files
+    batch_files=$(get_batch "$batch_output" "$batch_num")
+
+    if [[ -z "$batch_files" ]]; then
+      batch_num=$((batch_num + 1))
+      continue
+    fi
+
+    if [[ $num_batches -gt 1 ]]; then
+      echo -e "${CYAN}Processing batch $batch_num/$num_batches...${NC}"
+    fi
+
+    # Build prompt for this batch
+    local PROMPT
+    PROMPT=$(build_prompt "$RULES" "$batch_files" "$use_staged" "$commit_msg")
+
+    start_spinner "Reviewing code..."
+    local RESULT
+    RESULT=$(execute_with_retry "$PROVIDER" "$PROMPT" "$RETRY_COUNT" "$RETRY_DELAY" "$FALLBACK_PROVIDER")
+    local EXEC_STATUS=$?
+    stop_spinner
+
+    if [[ $EXEC_STATUS -ne 0 ]]; then
+      log_error "Provider execution failed for batch $batch_num"
+      any_error=true
+      batch_num=$((batch_num + 1))
+      continue
+    fi
+
+    # Parse result for this batch
+    local status_check
+    status_check=$(echo "$RESULT" | head -n 15)
+
+    if echo "$status_check" | grep -q "STATUS: PASSED"; then
+      # Track passed files for caching
+      if [[ -n "$passed_files" ]]; then
+        passed_files="$passed_files"$'\n'"$batch_files"
+      else
+        passed_files="$batch_files"
+      fi
+      if [[ $num_batches -gt 1 ]]; then
+        log_success "Batch $batch_num: PASSED"
+      fi
+    elif echo "$status_check" | grep -q "STATUS: FAILED"; then
+      any_failed=true
+      # Extract findings from this batch
+      local batch_findings
+      batch_findings=$(echo "$RESULT" | grep -E "^#[0-9]+" || true)
+      if [[ -n "$batch_findings" ]]; then
+        if [[ -n "$all_findings" ]]; then
+          all_findings="$all_findings"$'\n'"$batch_findings"
+        else
+          all_findings="$batch_findings"
+        fi
+      fi
+      if [[ $num_batches -gt 1 ]]; then
+        log_error "Batch $batch_num: FAILED"
+      fi
+      # Store full result for later
+      if [[ -n "$all_results" ]]; then
+        all_results="$all_results"$'\n\n'"$RESULT"
+      else
+        all_results="$RESULT"
+      fi
+    else
+      # Ambiguous result
+      if [[ "$STRICT_MODE" == "true" ]]; then
+        any_error=true
+        if [[ $num_batches -gt 1 ]]; then
+          log_warning "Batch $batch_num: Ambiguous response"
+        fi
+      fi
+    fi
+
+    batch_num=$((batch_num + 1))
+  done
 
   echo ""
 
-  if [[ $EXEC_STATUS -ne 0 ]]; then
+  # Handle overall result
+  if [[ "$any_error" == true && "$STRICT_MODE" == "true" ]]; then
     log_error "Provider execution failed"
-    if [[ "$STRICT_MODE" == "true" ]]; then
-      exit 1
-    fi
-    exit 0
+    exit 1
   fi
 
-  format_review_output "$RESULT"
-
-  # Parse result
-  # Search for STATUS in the first 15 lines to handle AI responses that include
-  # preamble text (e.g., instruction acknowledgments, markdown formatting)
-  # Accepts: "STATUS: PASSED", "**STATUS: PASSED**", etc.
-  local status_check
-  status_check=$(echo "$RESULT" | head -n 15)
-  
-  if echo "$status_check" | grep -q "STATUS: PASSED"; then
-    # Cache the passed files
-    if [[ "$cache_initialized" == true ]]; then
-      cache_files_passed "$files_to_review" "$use_staged"
+  if [[ "$any_failed" == true ]]; then
+    # Show combined findings
+    if [[ $num_batches -gt 1 && -n "$all_findings" ]]; then
+      echo -e "${CYAN}─────────${NC} ${BOLD}Combined Review Results${NC} ${CYAN}─────────${NC}"
+      echo ""
+      echo "STATUS: FAILED"
+      echo ""
+      # Renumber findings for combined output
+      local finding_num=1
+      while IFS= read -r finding; do
+        if [[ -n "$finding" ]]; then
+          # Replace #N with new sequential number
+          local finding_rest
+          finding_rest=$(echo "$finding" | sed 's/^#[0-9]* //')
+          echo "#$finding_num $finding_rest"
+          finding_num=$((finding_num + 1))
+        fi
+      done <<< "$all_findings"
+      echo ""
+      echo -e "${CYAN}──────────────────────────────────${NC}"
+    else
+      # Single batch, show original output
+      format_review_output "$all_results"
     fi
-    log_success "CODE REVIEW PASSED"
-    echo ""
-    exit 0
-  elif echo "$status_check" | grep -q "STATUS: FAILED"; then
+
     log_error "CODE REVIEW FAILED"
 
     # Interactive dismiss flow (only in terminal, not CI)
     if [[ -t 1 && "$ci_mode" != true ]]; then
       local dismiss_result=0
-      prompt_dismiss_findings "$RESULT" || dismiss_result=$?
+      prompt_dismiss_findings "$all_results" || dismiss_result=$?
 
       if [[ $dismiss_result -eq 0 ]]; then
         # All findings dismissed
@@ -1244,21 +1351,16 @@ cmd_run() {
     echo "Fix the violations listed above before committing."
     echo ""
     exit 1
-  else
-    log_warning "Could not determine review status"
-    if [[ "$STRICT_MODE" == "true" ]]; then
-      log_error "STRICT MODE: Failing due to ambiguous response"
-      echo ""
-      echo "Expected 'STATUS: PASSED' or 'STATUS: FAILED' in the first 15 lines"
-      echo "Set STRICT_MODE=false in config to allow ambiguous responses"
-      echo ""
-      exit 1
-    else
-      log_warning "Allowing commit (STRICT_MODE=false)"
-      echo ""
-      exit 0
-    fi
   fi
+
+  # All batches passed
+  # Cache the passed files
+  if [[ "$cache_initialized" == true && -n "$passed_files" ]]; then
+    cache_files_passed "$passed_files" "$use_staged"
+  fi
+  log_success "CODE REVIEW PASSED"
+  echo ""
+  exit 0
 }
 
 # ============================================================================
@@ -1414,6 +1516,225 @@ format_file_size() {
   else
     echo "${bytes}B"
   fi
+}
+
+# ============================================================================
+# Batching Functions
+# ============================================================================
+
+calculate_file_content_size() {
+  # Calculates the content size of a single file
+  # $1: file path
+  # $2: use_staged - if "true", get staged content size
+  # Returns: size in characters (bytes)
+  local file="$1"
+  local use_staged="${2:-false}"
+
+  if [[ -z "$file" ]]; then
+    echo "0"
+    return
+  fi
+
+  local size
+  if [[ "$use_staged" == "true" ]]; then
+    size=$(git show ":$file" 2>/dev/null | wc -c)
+  else
+    if [[ -f "$file" ]]; then
+      size=$(wc -c < "$file")
+    else
+      size=0
+    fi
+  fi
+
+  echo "$size"
+}
+
+calculate_prompt_overhead() {
+  # Calculates the approximate overhead of the prompt template (without file contents)
+  # This includes: instructions, rules file, headers, etc.
+  # $1: rules content
+  # Returns: overhead size in characters
+  local rules="$1"
+  local rules_size=${#rules}
+
+  # Approximate overhead from prompt template:
+  # - Instructions: ~500 chars
+  # - Headers and separators: ~200 chars
+  # - Per-file overhead (filename markers): counted separately
+  local base_overhead=700
+  echo $((base_overhead + rules_size))
+}
+
+calculate_prompt_size_for_files() {
+  # Calculates the total prompt size for a list of files
+  # $1: newline-separated list of files
+  # $2: use_staged
+  # $3: rules content
+  # Returns: total size in characters
+  local files="$1"
+  local use_staged="${2:-false}"
+  local rules="${3:-}"
+
+  local total_size=0
+
+  # Add overhead
+  total_size=$(calculate_prompt_overhead "$rules")
+
+  # Add file contents and per-file overhead (~30 chars for "--- FILE: xxx ---\n")
+  while IFS= read -r file; do
+    if [[ -n "$file" ]]; then
+      local file_size
+      file_size=$(calculate_file_content_size "$file" "$use_staged")
+      # Add file content size + overhead for file header
+      total_size=$((total_size + file_size + 30 + ${#file}))
+    fi
+  done <<< "$files"
+
+  echo "$total_size"
+}
+
+split_files_into_batches() {
+  # Splits a list of files into batches that fit within max_prompt_size
+  # $1: newline-separated list of files
+  # $2: max_prompt_size (0 = no splitting)
+  # $3: use_staged
+  # $4: rules content
+  # Returns: batches separated by "---BATCH---" marker
+  local files="$1"
+  local max_size="${2:-0}"
+  local use_staged="${3:-false}"
+  local rules="${4:-}"
+
+  # No splitting if max_size is 0 or empty
+  if [[ -z "$max_size" || "$max_size" == "0" ]]; then
+    echo "$files"
+    return
+  fi
+
+  local overhead
+  overhead=$(calculate_prompt_overhead "$rules")
+
+  # Available space for file contents
+  local available_space=$((max_size - overhead))
+
+  if [[ $available_space -le 0 ]]; then
+    # Rules file alone exceeds limit, can't batch effectively
+    echo "$files"
+    return
+  fi
+
+  local current_batch=""
+  local current_batch_size=0
+  local batch_count=0
+
+  while IFS= read -r file; do
+    if [[ -z "$file" ]]; then
+      continue
+    fi
+
+    local file_size
+    file_size=$(calculate_file_content_size "$file" "$use_staged")
+    local file_overhead=$((30 + ${#file}))
+    local total_file_size=$((file_size + file_overhead))
+
+    # Check if adding this file would exceed the limit
+    if [[ $current_batch_size -gt 0 && $((current_batch_size + total_file_size)) -gt $available_space ]]; then
+      # Output current batch and start new one
+      if [[ $batch_count -gt 0 ]]; then
+        echo ""
+        echo "---BATCH---"
+      fi
+      printf '%s' "$current_batch"
+      batch_count=$((batch_count + 1))
+      current_batch=""
+      current_batch_size=0
+    fi
+
+    # Add file to current batch
+    if [[ -n "$current_batch" ]]; then
+      current_batch="$current_batch"$'\n'"$file"
+    else
+      current_batch="$file"
+    fi
+    current_batch_size=$((current_batch_size + total_file_size))
+  done <<< "$files"
+
+  # Output final batch
+  if [[ -n "$current_batch" ]]; then
+    if [[ $batch_count -gt 0 ]]; then
+      echo ""
+      echo "---BATCH---"
+    fi
+    printf '%s\n' "$current_batch"
+  fi
+}
+
+count_batches() {
+  # Counts the number of batches in batch output
+  # $1: batch output from split_files_into_batches
+  # Returns: number of batches
+  local batch_output="$1"
+
+  if [[ -z "$batch_output" ]]; then
+    echo "0"
+    return
+  fi
+
+  local count
+  count=$(echo "$batch_output" | grep -c "^---BATCH---$" || true)
+  echo $((count + 1))
+}
+
+get_batch() {
+  # Gets a specific batch from batch output
+  # $1: batch output from split_files_into_batches
+  # $2: batch number (1-indexed)
+  # Returns: files in that batch (newline-separated)
+  local batch_output="$1"
+  local batch_num="$2"
+
+  if [[ -z "$batch_output" || -z "$batch_num" ]]; then
+    return
+  fi
+
+  # Split by ---BATCH--- and get the nth segment
+  local current_batch=0
+  local in_target_batch=false
+  local result=""
+
+  while IFS= read -r line; do
+    if [[ "$line" == "---BATCH---" ]]; then
+      current_batch=$((current_batch + 1))
+      if [[ "$in_target_batch" == true ]]; then
+        break
+      fi
+      if [[ $current_batch -eq $((batch_num - 1)) ]]; then
+        in_target_batch=true
+      fi
+      continue
+    fi
+
+    if [[ $current_batch -eq 0 && $batch_num -eq 1 ]]; then
+      # First batch (before any marker)
+      if [[ -n "$line" ]]; then
+        if [[ -n "$result" ]]; then
+          result="$result"$'\n'"$line"
+        else
+          result="$line"
+        fi
+      fi
+    elif [[ "$in_target_batch" == true ]]; then
+      if [[ -n "$line" ]]; then
+        if [[ -n "$result" ]]; then
+          result="$result"$'\n'"$line"
+        else
+          result="$line"
+        fi
+      fi
+    fi
+  done <<< "$batch_output"
+
+  echo "$result"
 }
 
 get_ci_files() {
